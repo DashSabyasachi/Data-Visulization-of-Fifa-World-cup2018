@@ -1,0 +1,167 @@
+STEP 1:
+import numpy as np # linear algebra\n",
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+import pandas as plt
+import matplotlib.pyplot as plt
+import seaborn as sns
+sns.set_style('whitegrid')
+from datetime import datetime
+import warnings
+warnings.filterwarnings('ignore')
+import os
+for dirname, _,filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+    import pycountry # we uses pycountry for converting the country name as int form it help us to count the country or city when we start ploting the graphy"
+
+
+
+
+STEP 2:
+data=pd.read_csv('worldcup.csv')
+data.head(64)
+
+
+STEP3:
+# By using drop so we could drop some coloumn that we dont need it.
+data.drop(['Year', 'MatchID','Referee','Assistant 1','Assistant 2'],axis=1, inplace=True)
+data.head(3)
+
+
+STEP 4:
+# The headings are to long to write so we are renaming it because for further working it help us to use in coding.
+data.rename(columns={'Home Team Name':'Home_team',
+                     'Away Team Name':'Away_team',
+                     'Home Team Goals':'Home_goals','Away Team Goals':'Away_goals'},inplace=True)
+data.head(4)
+
+
+STEP 5:
+# we are separating the date and time here and adding another column for hours.
+# Further it will be use for graph plotting
+data['Hour'] = data.Datetime.apply(lambda x: x.split(' - ')[1])
+data.Datetime = data.Datetime.apply(lambda x: x.split(' - ')[0])
+data.head(3)
+
+
+STEP 6:
+# it help us to draw a figure in size.
+plt.figure(figsize=(10,5))
+# this line helps us to count each city of Russia and count it.
+by_city = data.groupby('City').count().reset_index()[['City','Datetime']].sort_values('Datetime', ascending=False)
+# here we are importing the seaborn library for making line in the graph.
+sns.lineplot(by_city.City, by_city.Datetime, palette='vlag')
+# here we are importing the seaborn library for making line in the graph.
+sns.pointplot(by_city.City, by_city.Datetime, palette='Reds')
+# tick is basically used for the specific point on the coordinate axis.
+plt.xticks(rotation=90, fontsize=12)
+plt.yticks(fontsize=12)
+plt.title('Number of Matches held in each Russian City', fontsize=16)
+plt.xlabel('City Name', fontsize=14)
+plt.ylabel('Number', fontsize=14)
+
+
+
+STEP 7:
+plt.figure(figsize=(10,7))
+by_goals = data.groupby('Datetime').sum().reset_index()[['Home_goals','Datetime']]
+by_goals.Datetime = pd.to_datetime(by_goals.Datetime, format='%d %b %Y')
+by_goals.Datetime = by_goals.Datetime.apply(lambda x: datetime.strftime(x, '%m/%d'))
+by_goals = by_goals.sort_values('Datetime')
+sns.lineplot(by_goals.Home_goals, by_goals.Datetime, palette='cool_d')
+sns.pointplot(by_goals.Home_goals, by_goals.Datetime, palette='dark')
+plt.xticks(rotation=90, fontsize=14)
+plt.yticks(fontsize=12)
+plt.title('Number of Goals Scored in each Day', fontsize=16)
+plt.xlabel('Number', fontsize=14)
+plt.ylabel('Date', fontsize=14)
+
+
+STEP 8:
+# same pattern that we follow from the previous graph of "Russia city matches"
+plt.figure(figsize=(10,5))
+by_city = data.groupby('Stadium').count().reset_index()[['Datetime','Stadium']].sort_values('Datetime', ascending=False)
+sns.barplot(by_city.Stadium, by_city.Datetime, palette='Blues_d')
+plt.xticks(rotation=90, fontsize=14)
+plt.yticks(fontsize=12)
+plt.title('Number of Matches held in Each Stadium', fontsize=16)
+plt.xlabel('Stadium Name', fontsize=14)
+plt.ylabel('Number', fontsize=14)
+
+
+STEP 9:
+plt.figure(figsize=(10,5))
+games_by_hour = data.Hour.value_counts().to_frame().reset_index()
+games_by_hour.columns = ['Hour', 'Number of Mathces']
+sns.barplot(games_by_hour.Hour, games_by_hour['Number of Mathces'], palette='Oranges_r')
+plt.xticks(rotation=90, fontsize=14)
+plt.yticks(fontsize=12)
+plt.title('Number of Matches held in each Hour', fontsize=16)
+plt.xlabel('Hour', fontsize=14)
+plt.ylabel('Number', fontsize=14)
+
+
+
+STEP 10:
+plt.figure(figsize=(10,7))
+games_per_day = data.groupby('Datetime').count().reset_index()[['Datetime', 'Stadium']].sort_values('Stadium', ascending=False)
+#Now here we uses pd.to_datetime which convert string date time into python datetime object
+games_per_day.Datetime = pd.to_datetime(games_per_day.Datetime, format='%d %b %Y')
+#we uses a function below in and in the function we uses strftime, strftime convert the datetime into string Repersentation
+games_per_day.Datetime = games_per_day.Datetime.apply(lambda x: datetime.strftime(x, '%m/%d'))
+#The process is same as above graph, accept here we introduce range, range is use for return a sequence of numbers starting from zero.
+sns.barplot(games_per_day.Stadium, games_per_day.Datetime, palette='cool_d')
+plt.xticks(range(5), rotation=90, fontsize=14)
+plt.yticks(fontsize=12)
+plt.title('Number of Mathces Held in each Day', fontsize=16)
+plt.xlabel('Number', fontsize=14)
+plt.ylabel('Date', fontsize=14)
+
+
+
+STEP 11:
+# here we create a column which is going to add in our CSV file and in this columns we are going to add the values of Home_goals
+# and Away_goals
+data['Total_goals'] = data.Home_goals + data.Away_goals
+#here we uses sum to adds up all the numerical values in an iterable, such as a list and return the total of those values.
+goals_by_day = data.groupby('Datetime').Total_goals.sum().to_frame().reset_index()
+#here we uses sum to adds up all the numerical values in an iterable, such as a list and return the total of those values.
+goals_by_day.columns = ['Datetime2', 'Total_Goals']
+goals_by_day.Datetime2 = pd.to_datetime(goals_by_day.Datetime2, format='%d %b %Y')
+goals_by_day.Datetime2 = goals_by_day.Datetime2.apply(lambda x: datetime.strftime(x, '%m/%d'))
+#here we uses sum to adds up all the numerical values in an iterable, such as a list and return the total of those values.
+goal_ratio = pd.concat([goals_by_day, games_per_day],axis=1).drop('Datetime', axis=1)
+goal_ratio.columns = ['Datetime', 'Total_Goals', 'num_of_Matches']
+goal_ratio['Ratio'] = goal_ratio.Total_Goals / goal_ratio.num_of_Matches
+goal_ratio = goal_ratio.sort_values('Ratio', ascending=False)
+data.head(3)
+
+
+
+STEP 12:
+ '''In here we are analyising the score of each team, how many goals that scored by each teams, how many they received 
+and the difference of it.'''
+goals_by_home = data.groupby('Home_team').sum()[['Home_goals', 'Away_goals']].reset_index()
+goals_by_away = data.groupby('Away_team').sum()[['Home_goals', 'Away_goals']].reset_index()
+goals_total = pd.concat([goals_by_home, goals_by_away],axis=1)
+goals_total.columns = ['Home_team','Home_Scored', 'Home_Received', 'Away_team', 'Away_Received', 'Away_Scored']
+goals_total['Scored'] = goals_total.Home_Scored + goals_total.Away_Scored
+goals_total['Received'] = goals_total.Home_Received + goals_total.Away_Received
+goals_total = goals_total.drop(['Home_Scored', 'Home_Received', 'Away_team', 'Away_Scored', 'Away_Received'], axis=1)
+goals_total['Goal_diff'] = goals_total.Scored - goals_total.Received
+goals_total = goals_total.rename(columns={'Home_team': 'Team_name'})
+goals_total.head(7)
+
+
+
+STEP 13:
+# here we plot the graph of the teams that how many goals being scroed by each teams
+plt.figure(figsize=(10,7))
+goals_total = goals_total.sort_values('Scored', ascending=False)
+sns.barplot(goals_total.Team_name, goals_total.Scored, palette='coolwarm_r')
+plt.xticks(rotation=90, fontsize=14)
+plt.yticks(range(goals_total.Scored.max()+1), fontsize=12)
+plt.title('Total Scored Goals by Team', fontsize=16)
+plt.xlabel('Team', fontsize=14)
+plt.ylabel('Goals Number', fontsize=14)
+
